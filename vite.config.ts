@@ -7,6 +7,10 @@ import { bunny } from 'laravel-vite-plugin/fonts';
 import { defineConfig, lazyPlugins } from 'vite-plus';
 
 export default defineConfig({
+    resolve: {
+        dedupe: ['vue', '@vue/runtime-core'],
+        preserveSymlinks: true,
+    },
     plugins: lazyPlugins(() => [
         laravel({
             input: ['resources/css/app.css', 'resources/js/app.ts'],
