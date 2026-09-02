@@ -17,33 +17,19 @@ it('renders the product table with selectable and management capabilities', func
 
     $response->assertInertia(fn (Assert $page) => $page
         ->component('Products/Index')
-        ->where('paginationMode', 'full')
         ->where('products.name', 'products')
-        ->where('products.options.paginationType', 'full')
+        ->where('products.options.paginationType', 'cursor')
         ->where('products.capabilities.hasFilters', true)
         ->where('products.capabilities.hasBulkActions', true)
         ->where('products.capabilities.hasExports', true)
-        ->where('products.results.total', 3)
+        ->where('products.results.currentPage', null)
+        ->where('products.results.lastPage', null)
+        ->where('products.results.total', null)
         ->where('products.results.selectableTotal', 2)
         ->has('products.results.data', 3)
         ->has('products.views')
         ->has('products.exports', 4));
 });
-
-it('switches pagination strategy from the page query', function (string $mode) {
-    $category = Category::factory()->create();
-    Product::factory()->count(12)->for($category)->active()->create();
-
-    $response = $this->get(route('products.index', ['pagination' => $mode]));
-
-    $response->assertInertia(fn (Assert $page) => $page
-        ->where('paginationMode', $mode)
-        ->where('products.options.paginationType', $mode)
-        ->has('products.results.data', 10));
-})->with([
-    'simple pagination' => 'simple',
-    'cursor pagination' => 'cursor',
-]);
 
 it('applies global search across the configured product columns', function () {
     $category = Category::factory()->create();
@@ -55,6 +41,17 @@ it('applies global search across the configured product columns', function () {
     ]));
 
     $response->assertInertia(fn (Assert $page) => $page
-        ->where('products.results.total', 1)
+        ->where('products.results.total', null)
         ->where('products.results.data.0.name', 'Needle Headphones'));
+});
+
+it('removes the legacy pagination strategy query parameter', function () {
+    $response = $this->get(route('products.index', [
+        'pagination' => 'full',
+        'table' => ['products' => ['search' => 'desk']],
+    ]));
+
+    $response->assertRedirect(route('products.index', [
+        'table' => ['products' => ['search' => 'desk']],
+    ]));
 });

@@ -8,8 +8,14 @@ import { defineConfig, lazyPlugins } from 'vite-plus';
 
 export default defineConfig({
     resolve: {
-        dedupe: ['vue', '@vue/runtime-core'],
-        preserveSymlinks: true,
+        dedupe: [
+            'vue',
+            '@vue/runtime-core',
+            '@inertiajs/vue3',
+            '@inertiajs/core',
+            '@lucide/vue',
+            'reka-ui',
+        ],
     },
     plugins: lazyPlugins(() => [
         laravel({

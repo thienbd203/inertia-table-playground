@@ -12,7 +12,7 @@ import {
     Search,
     Sparkles,
 } from '@lucide/vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import {
     DataTable,
     type TableItem,
@@ -44,15 +44,8 @@ type Summary = {
     locked: number;
 };
 
-type PaginationMode = {
-    label: string;
-    url: string;
-};
-
 const props = defineProps<{
     products: TableResource<Product>;
-    paginationMode: 'full' | 'simple' | 'cursor';
-    paginationModes: Record<string, PaginationMode>;
     summary: Summary;
 }>();
 
@@ -77,12 +70,6 @@ const features: Array<{ label: string; icon: Component }> = [
     { label: 'Bulk actions', icon: Archive },
     { label: 'CSV sync và queued', icon: Download },
 ];
-
-const modeDescriptions: Record<string, string> = {
-    full: 'Có tổng số bản ghi và điều hướng tới trang đầu/cuối.',
-    simple: 'Bỏ COUNT(*) của paginator, chỉ giữ trang trước/sau.',
-    cursor: 'Keyset pagination bằng cursor, phù hợp dữ liệu lớn.',
-};
 
 const currency = new Intl.NumberFormat('vi-VN', {
     style: 'currency',
@@ -171,41 +158,8 @@ function formatCurrency(value: string): string {
                 </span>
             </section>
 
-            <section class="flex flex-col gap-4">
-                <div
-                    class="bg-card flex flex-col gap-4 rounded-2xl border p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between"
-                >
-                    <div class="flex flex-col gap-1">
-                        <p class="text-sm font-semibold">Pagination strategy</p>
-                        <p class="text-muted-foreground text-xs">
-                            {{ modeDescriptions[props.paginationMode] }}
-                        </p>
-                    </div>
-
-                    <nav
-                        class="bg-muted grid grid-cols-3 rounded-xl p-1"
-                        aria-label="Chọn pagination"
-                    >
-                        <Link
-                            v-for="(mode, key) in props.paginationModes"
-                            :key="key"
-                            :href="mode.url"
-                            preserve-scroll
-                            class="rounded-lg px-4 py-2 text-center text-sm font-medium transition"
-                            :class="
-                                key === props.paginationMode
-                                    ? 'bg-card text-foreground shadow-sm'
-                                    : 'text-muted-foreground hover:text-foreground'
-                            "
-                        >
-                            {{ mode.label }}
-                        </Link>
-                    </nav>
-                </div>
-
-                <div
-                    class="products-demo bg-card overflow-hidden rounded-2xl border p-4 shadow-sm sm:p-5"
-                >
+            <section>
+                <div class="products-demo">
                     <DataTable :resource="props.products">
                         <template #cell(name)="{ item }">
                             <div class="flex min-w-0 flex-col gap-1 py-0.5">

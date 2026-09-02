@@ -23,6 +23,7 @@ use Musing\InertiaTable\Filters\Filter;
 use Musing\InertiaTable\Filters\NumericFilter;
 use Musing\InertiaTable\Filters\SetFilter;
 use Musing\InertiaTable\Filters\TextFilter;
+use Musing\InertiaTable\PaginationType;
 use Musing\InertiaTable\Selection;
 use Musing\InertiaTable\Table;
 use Musing\InertiaTable\Variant;
@@ -35,6 +36,8 @@ final class ProductsTable extends Table
     protected ?int $perPage = 10;
 
     protected ?array $perPageOptions = [10, 25, 50, 100];
+
+    protected ?PaginationType $paginationType = PaginationType::Cursor;
 
     protected ?bool $stickyHeader = true;
 
@@ -50,7 +53,7 @@ final class ProductsTable extends Table
             NumberColumn::make('id', 'ID')
                 ->sortable()
                 ->toggleable(false)
-                ->sticky(),
+                ->stickable(),
             TextColumn::make('name', 'Sản phẩm')
                 ->searchable()
                 ->sortable()
@@ -103,7 +106,7 @@ final class ProductsTable extends Table
                 ->format('d/m/Y H:i')
                 ->sortable()
                 ->visible(false),
-            ActionColumn::new()->asDropdown()->sticky(),
+            ActionColumn::new()->asDropdown()->header('Thao tác')->sticky(),
         ];
     }
 
