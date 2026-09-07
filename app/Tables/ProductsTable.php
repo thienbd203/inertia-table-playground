@@ -20,6 +20,7 @@ use Musing\InertiaTable\Exports\Export;
 use Musing\InertiaTable\Filters\BooleanFilter;
 use Musing\InertiaTable\Filters\DateFilter;
 use Musing\InertiaTable\Filters\Filter;
+use Musing\InertiaTable\Filters\FilterOptionRequest;
 use Musing\InertiaTable\Filters\NumericFilter;
 use Musing\InertiaTable\Filters\SetFilter;
 use Musing\InertiaTable\Filters\TextFilter;
@@ -41,6 +42,8 @@ final class ProductsTable extends Table
 
     protected ?bool $stickyHeader = true;
 
+    protected ?bool $stickyFooter = true;
+
     /** @return Builder<Product> */
     public function query(): Builder
     {
@@ -53,14 +56,19 @@ final class ProductsTable extends Table
             NumberColumn::make('id', 'ID')
                 ->sortable()
                 ->toggleable(false)
-                ->stickable(),
+                ->stickable()
+                ->summary('count'),
             TextColumn::make('name', 'Sản phẩm')
                 ->searchable()
                 ->sortable()
                 ->stickable()
                 ->wrap()
                 ->truncate(2)
-                ->cellClass('min-w-72'),
+                ->cellClass('min-w-72')
+                ->width(280) // kích thước mặc định
+                ->minWidth(180) // giới hạn khi kéo
+                ->maxWidth(480)
+                ->resizable(), // bật tay kéo
             TextColumn::make('sku', 'SKU')
                 ->searchable()
                 ->sortable()
@@ -68,7 +76,12 @@ final class ProductsTable extends Table
                 ->cellClass('font-mono text-xs'),
             TextColumn::make('category.name', 'Danh mục')
                 ->searchable()
-                ->stickable(),
+                ->stickable()
+                ->summaryUsing(
+                    fn (Builder $query): int => (clone $query)
+                        ->distinct()
+                        ->count('category_id'),
+                ),
             BadgeColumn::make('status', 'Trạng thái')
                 ->mapAs(fn (ProductStatus $status): string => $status->label())
                 ->variant(fn (ProductStatus $status): Variant => match ($status) {
@@ -86,19 +99,24 @@ final class ProductsTable extends Table
                 ->sortable()
                 ->rightAligned()
                 ->cellClass('font-medium tabular-nums')
-                ->exportFormat('#,##0.00'),
+                ->exportFormat('#,##0.00')
+                ->summary('sum')
+                ->summaryFormat('#,##0.00'),
             NumberColumn::make('stock', 'Tồn kho')
                 ->sortable()
                 ->rightAligned()
-                ->cellClass('tabular-nums'),
+                ->cellClass('tabular-nums')
+                ->summary('sum'),
             NumberColumn::make('rating', 'Đánh giá')
                 ->sortable()
-                ->rightAligned(),
+                ->rightAligned()
+                ->summary('avg'),
             BooleanColumn::make('featured', 'Nổi bật')
                 ->sortable()
                 ->trueLabel('Có')
                 ->falseLabel('Không')
-                ->trueIcon('Star'),
+                ->trueIcon('Star')
+                ->summary('sum'),
             DateColumn::make('launched_at', 'Ngày mở bán')
                 ->format('d/m/Y')
                 ->sortable(),
@@ -106,7 +124,7 @@ final class ProductsTable extends Table
                 ->format('d/m/Y H:i')
                 ->sortable()
                 ->visible(false),
-            ActionColumn::new()->asDropdown()->header('Thao tác')->sticky(),
+            ActionColumn::new()->asDropdown()->header('Thao tác'),
         ];
     }
 
@@ -116,12 +134,28 @@ final class ProductsTable extends Table
         return [
             TextFilter::make('name', 'Tên sản phẩm'),
             SetFilter::make('category_id', 'Danh mục')
-                ->options(
-                    Category::query()
-                        ->orderBy('name')
-                        ->pluck('name', 'id')
-                        ->all(),
-                )
+                ->optionsUsing(function (FilterOptionRequest $request): Builder {
+                    $statuses = array_values(array_filter(
+                        (array) $request->dependency('status'),
+                        fn (mixed $status): bool => is_string($status),
+                    ));
+
+                    return Category::query()
+                        ->when(
+                            $statuses !== [],
+                            fn (Builder $query): Builder => $query->whereHas(
+                                'products',
+                                fn (Builder $products): Builder => $products->whereIn('status', $statuses),
+                            ),
+                        )
+                        ->orderBy('name');
+                })
+                ->optionValue('id')
+                ->optionLabel('name')
+                ->searchableOptions()
+                ->dependsOn(['status'])
+                ->withCounts()
+                ->optionPageSize(3)
                 ->multiple()
                 ->compactDisplay(':count danh mục'),
             SetFilter::make('status', 'Trạng thái')
@@ -204,14 +238,17 @@ final class ProductsTable extends Table
     public function exports(): array
     {
         return [
-            Export::make('all', 'Toàn bộ dữ liệu', 'products-all.csv'),
-            Export::make('filtered', 'Kết quả theo bộ lọc', 'products-filtered.csv')
+            Export::make('all', 'Toàn bộ dữ liệu + tổng', 'products-all.csv')
+                ->withSummaries(),
+            Export::make('filtered', 'Kết quả theo bộ lọc + tổng', 'products-filtered.csv')
                 ->filtered()
-                ->visibleColumnsOnly(),
+                ->visibleColumnsOnly()
+                ->withSummaries(),
             Export::make('selected', 'Các dòng đã chọn', 'products-selected.csv')
                 ->selected(),
-            Export::make('queued', 'Theo bộ lọc · xử lý nền', 'products-queued.csv')
+            Export::make('queued', 'Theo bộ lọc + tổng · xử lý nền', 'products-queued.csv')
                 ->filtered()
+                ->withSummaries()
                 ->chunkSize(250)
                 ->queue(disk: 'public', expiresAfter: 86_400),
         ];

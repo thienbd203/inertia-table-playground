@@ -9,16 +9,18 @@ import {
     Filter,
     LockKeyhole,
     MousePointer2,
+    ListFilter,
     Search,
+    Sigma,
     Sparkles,
-} from '@lucide/vue';
-import { Head } from '@inertiajs/vue3';
+} from "@lucide/vue";
+import { Head } from "@inertiajs/vue3";
 import {
     DataTable,
     type TableItem,
     type TableResource,
-} from '@musing/inertia-table-vue';
-import type { Component } from 'vue';
+} from "@musing/inertia-table-vue";
+import type { Component } from "vue";
 
 type Product = TableItem & {
     id: number;
@@ -54,26 +56,28 @@ const summaryCards: Array<{
     label: string;
     icon: Component;
 }> = [
-    { key: 'total', label: 'Tổng sản phẩm', icon: Boxes },
-    { key: 'active', label: 'Đang bán', icon: CheckCheck },
-    { key: 'featured', label: 'Nổi bật', icon: Sparkles },
-    { key: 'locked', label: 'Không thể bulk-select', icon: LockKeyhole },
+    { key: "total", label: "Tổng sản phẩm", icon: Boxes },
+    { key: "active", label: "Đang bán", icon: CheckCheck },
+    { key: "featured", label: "Nổi bật", icon: Sparkles },
+    { key: "locked", label: "Không thể bulk-select", icon: LockKeyhole },
 ];
 
 const features: Array<{ label: string; icon: Component }> = [
-    { label: 'Search đa cột', icon: Search },
-    { label: '7 kiểu filter', icon: Filter },
-    { label: 'Ẩn và pin cột', icon: Columns3 },
-    { label: 'Select all theo filter', icon: CheckCheck },
-    { label: 'Shift-click range', icon: MousePointer2 },
-    { label: 'Saved views', icon: Bookmark },
-    { label: 'Bulk actions', icon: Archive },
-    { label: 'CSV sync và queued', icon: Download },
+    { label: "Search đa cột", icon: Search },
+    { label: "7 kiểu filter", icon: Filter },
+    { label: "Remote filter + facet count", icon: ListFilter },
+    { label: "Ẩn và pin cột", icon: Columns3 },
+    { label: "Select all theo filter", icon: CheckCheck },
+    { label: "Shift-click range", icon: MousePointer2 },
+    { label: "Summary theo toàn bộ filter", icon: Sigma },
+    { label: "Saved views", icon: Bookmark },
+    { label: "Bulk actions", icon: Archive },
+    { label: "CSV sync và queued", icon: Download },
 ];
 
-const currency = new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
+const currency = new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
     maximumFractionDigits: 0,
 });
 
@@ -159,6 +163,32 @@ function formatCurrency(value: string): string {
             </section>
 
             <section>
+                <div
+                    class="bg-card text-muted-foreground mb-4 grid gap-3 rounded-2xl border p-4 text-sm sm:grid-cols-3"
+                >
+                    <p class="leading-6">
+                        <strong class="text-foreground font-medium"
+                            >Filter:</strong
+                        >
+                        Danh mục tải từ server theo cursor, có search và số sản
+                        phẩm theo các filter còn lại. Chọn Trạng thái trước để
+                        thử dependency.
+                    </p>
+                    <p class="leading-6">
+                        <strong class="text-foreground font-medium"
+                            >Layout:</strong
+                        >
+                        thử ẩn, đổi vị trí hoặc ghim cột để kiểm tra footer bám
+                        đúng bảng.
+                    </p>
+                    <p class="leading-6">
+                        <strong class="text-foreground font-medium"
+                            >Export:</strong
+                        >
+                        CSV toàn bộ, filtered và queued đều có dòng tổng cuối.
+                    </p>
+                </div>
+
                 <div class="products-demo">
                     <DataTable :resource="props.products">
                         <template #cell(name)="{ item }">

@@ -14,7 +14,7 @@ import {
     type IconResolver,
     vi,
 } from '@musing/inertia-table-vue';
-import { createApp, h, type Plugin } from 'vue';
+import { createApp, createSSRApp, h, type Plugin } from 'vue';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Inertia Table Playground';
 
@@ -41,18 +41,21 @@ void createInertiaApp({
         color: '#0f766e',
     },
     setup({ el, App, props, plugin }) {
-        if (!el) {
-            return;
-        }
-
-        createApp({ render: () => h(App, props) })
+        const app = (el ? createApp : createSSRApp)({
+            render: () => h(App, props),
+        })
             .use(plugin as unknown as Plugin)
             .use(
                 createInertiaTable({
                     locale: 'vi-VN',
                     messages: vi,
                 }) as unknown as Plugin,
-            )
-            .mount(el);
+            );
+
+        if (el) {
+            app.mount(el);
+        }
+
+        return app;
     },
 });
