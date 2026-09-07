@@ -20,7 +20,6 @@ use Musing\InertiaTable\Exports\Export;
 use Musing\InertiaTable\Filters\BooleanFilter;
 use Musing\InertiaTable\Filters\DateFilter;
 use Musing\InertiaTable\Filters\Filter;
-use Musing\InertiaTable\Filters\FilterOptionRequest;
 use Musing\InertiaTable\Filters\NumericFilter;
 use Musing\InertiaTable\Filters\SetFilter;
 use Musing\InertiaTable\Filters\TextFilter;
@@ -134,30 +133,10 @@ final class ProductsTable extends Table
         return [
             TextFilter::make('name', 'Tên sản phẩm'),
             SetFilter::make('category_id', 'Danh mục')
-                ->optionsUsing(function (FilterOptionRequest $request): Builder {
-                    $statuses = array_values(array_filter(
-                        (array) $request->dependency('status'),
-                        fn (mixed $status): bool => is_string($status),
-                    ));
-
-                    return Category::query()
-                        ->when(
-                            $statuses !== [],
-                            fn (Builder $query): Builder => $query->whereHas(
-                                'products',
-                                fn (Builder $products): Builder => $products->whereIn('status', $statuses),
-                            ),
-                        )
-                        ->orderBy('name');
-                })
-                ->optionValue('id')
-                ->optionLabel('name')
-                ->searchableOptions()
-                ->dependsOn(['status'])
-                ->withCounts()
-                ->optionPageSize(3)
+                ->pluckOptionsFromModel(Category::class, 'name')
+                ->lazy()
                 ->multiple()
-                ->compactDisplay(':count danh mục'),
+                ->compactDisplay('danh mục'),
             SetFilter::make('status', 'Trạng thái')
                 ->options(collect(ProductStatus::cases())->mapWithKeys(
                     fn (ProductStatus $status): array => [$status->value => $status->label()],

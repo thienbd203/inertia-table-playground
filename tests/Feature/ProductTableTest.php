@@ -2,9 +2,6 @@
 
 use App\Models\Category;
 use App\Models\Product;
-use App\ProductStatus;
-use App\Tables\ProductsTable;
-use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -44,10 +41,8 @@ it('renders the product table with selectable and management capabilities', func
         ->where('products.capabilities.hasExports', true)
         ->where('products.capabilities.hasSummaries', true)
         ->where('products.filters.1.options', [])
-        ->where('products.filters.1.remote.searchable', true)
-        ->where('products.filters.1.remote.dependsOn', ['status'])
-        ->where('products.filters.1.remote.withCounts', true)
-        ->where('products.filters.1.remote.perPage', 3)
+        ->where('products.filters.1.lazy', true)
+        ->where('products.filters.1.lazyLoaded', false)
         ->where('products.results.currentPage', null)
         ->where('products.results.lastPage', null)
         ->where('products.results.total', null)
@@ -67,73 +62,26 @@ it('renders the product table with selectable and management capabilities', func
         ->where('products.exports.3.includesSummaries', true));
 });
 
-it('loads searchable category facets with cursor pagination and status dependency', function () {
-    $audio = Category::factory()->create(['name' => 'Âm thanh']);
-    $camera = Category::factory()->create(['name' => 'Máy ảnh']);
-    $archived = Category::factory()->create(['name' => 'Đã lưu trữ']);
-    $other = Category::factory()->create(['name' => 'Phụ kiện']);
-    Product::factory()->count(2)->for($audio)->active()->create();
+it('loads category options when the lazy filter is first opened', function () {
+    $audio = Category::factory()->create(['name' => 'Danh mục A']);
+    $camera = Category::factory()->create(['name' => 'Danh mục B']);
+    Product::factory()->for($audio)->active()->create();
     Product::factory()->for($camera)->active()->create();
-    Product::factory()->for($archived)->create([
-        'status' => ProductStatus::Archived,
-    ]);
-    Product::factory()->for($other)->active()->create();
-    $resource = (new ProductsTable)->resolve()->toArray();
-    $categoryFilter = collect($resource['filters'])->firstWhere('attribute', 'category_id');
 
-    $response = $this->postJson($categoryFilter['remote']['endpoint'], [
-        'search' => 'm',
-        'state' => [
-            'filters' => [
-                'status' => [
-                    'enabled' => true,
-                    'clause' => 'in',
-                    'value' => [ProductStatus::Active->value],
-                ],
-            ],
-        ],
-    ]);
+    $response = $this
+        ->withHeader(
+            'X-Musing-Inertia-Table-Lazy-Filters',
+            json_encode(['products' => ['category_id']], JSON_THROW_ON_ERROR),
+        )
+        ->get(route('products.index'));
 
-    $response
-        ->assertOk()
-        ->assertJsonFragment([
-            'label' => 'Âm thanh',
-            'count' => 2,
-        ])
-        ->assertJsonMissing(['label' => 'Đã lưu trữ']);
-});
-
-it('restores a selected category label even after its dependency no longer matches', function () {
-    $category = Category::factory()->create(['name' => 'Chỉ có sản phẩm lưu trữ']);
-    Product::factory()->for($category)->create([
-        'status' => ProductStatus::Archived,
-    ]);
-    $request = Request::create(route('products.index'), 'GET', [
-        'table' => [
-            'products' => [
-                'filters' => [
-                    'status' => [
-                        'enabled' => true,
-                        'clause' => 'in',
-                        'value' => [ProductStatus::Active->value],
-                    ],
-                    'category_id' => [
-                        'enabled' => true,
-                        'clause' => 'in',
-                        'value' => [$category->getKey()],
-                    ],
-                ],
-            ],
-        ],
-    ]);
-
-    $resource = (new ProductsTable)->resolve($request)->toArray();
-    $categoryFilter = collect($resource['filters'])->firstWhere('attribute', 'category_id');
-
-    expect($categoryFilter['options'])->toContain([
-        'value' => $category->getKey(),
-        'label' => 'Chỉ có sản phẩm lưu trữ',
-    ]);
+    $response->assertInertia(fn (Assert $page) => $page
+        ->where('products.filters.1.lazy', true)
+        ->where('products.filters.1.lazyLoaded', true)
+        ->where('products.filters.1.options', [
+            ['value' => $audio->getKey(), 'label' => 'Danh mục A'],
+            ['value' => $camera->getKey(), 'label' => 'Danh mục B'],
+        ]));
 });
 
 it('applies global search across the configured product columns', function () {

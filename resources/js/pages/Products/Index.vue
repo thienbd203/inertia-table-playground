@@ -65,7 +65,7 @@ const summaryCards: Array<{
 const features: Array<{ label: string; icon: Component }> = [
     { label: "Search đa cột", icon: Search },
     { label: "7 kiểu filter", icon: Filter },
-    { label: "Remote filter + facet count", icon: ListFilter },
+    { label: "Lazy filter options", icon: ListFilter },
     { label: "Ẩn và pin cột", icon: Columns3 },
     { label: "Select all theo filter", icon: CheckCheck },
     { label: "Shift-click range", icon: MousePointer2 },
@@ -170,9 +170,8 @@ function formatCurrency(value: string): string {
                         <strong class="text-foreground font-medium"
                             >Filter:</strong
                         >
-                        Danh mục tải từ server theo cursor, có search và số sản
-                        phẩm theo các filter còn lại. Chọn Trạng thái trước để
-                        thử dependency.
+                        Danh mục chỉ tải options từ server khi mở bộ lọc lần
+                        đầu. Mỗi lựa chọn vẫn áp dụng ngay vào bảng.
                     </p>
                     <p class="leading-6">
                         <strong class="text-foreground font-medium"
